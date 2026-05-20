@@ -24,7 +24,5 @@ build-backend = "uv_build"
 
 [project.scripts]
 robot = 'fr3s_utils.cli:cli'
-joint_position_example = 'fr3s_utils.joint_position_example:main'
 go_to_home = 'fr3s_utils.go_to_home:main'
-go_to_home2 = 'fr3s_utils.go_to_home2:main'
 print_robot_state = 'fr3s_utils.print_robot_state:main'

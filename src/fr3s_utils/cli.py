@@ -17,13 +17,15 @@ def cli():
    pass
 
 @cli.command()
-def enable_fci():
+@click.option("--force", is_flag=True, default=True)
+@click.option("--timeout", default=TIMEOUT)
+def enable_fci(force: bool, timeout: int):
     for robot_name, robot_config in robot_configs.items():
         hostname, username, password = robot_config["hostname"], robot_config["username"], robot_config["password"]
         print(f"Activating {robot_name} ({password}@{hostname})", end="", flush=True)
         with RobotWebSession(hostname, username=username, password=password) as robot:
             print(".", end="", flush=True)
-            robot.take_control(force=True, wait_timeout=TIMEOUT)
+            robot.take_control(force=force, wait_timeout=timeout)
             if robot.has_control():
                 robot.enable_fci()
                 print(".")
@@ -32,13 +34,15 @@ def enable_fci():
                 print("Failed.")
 
 @cli.command()
-def unlock():
+@click.option("--force", is_flag=True, default=True)
+@click.option("--timeout", default=TIMEOUT)
+def unlock(force: bool, timeout: int):
     for robot_name, robot_config in robot_configs.items():
         hostname, username, password = robot_config["hostname"], robot_config["username"], robot_config["password"]
         print(f"Activating {robot_name} ({password}@{hostname})", end="", flush=True)
         with RobotWebSession(hostname, username=username, password=password) as robot:
             print(".", end="", flush=True)
-            robot.take_control(force=True, wait_timeout=TIMEOUT)
+            robot.take_control(force=force, wait_timeout=timeout)
             if robot.has_control():
                 print(".", end="", flush=True)
                 robot.unlock_brakes()
@@ -51,13 +55,15 @@ def unlock():
                 print("Failed.")
 
 @cli.command()
-def lock():
+@click.option("--force", is_flag=True, default=True)
+@click.option("--timeout", default=TIMEOUT)
+def lock(force: bool, timeout: int):
     for robot_name, robot_config in robot_configs.items():
         hostname, username, password = robot_config["hostname"], robot_config["username"], robot_config["password"]
         print(f"Stopping {robot_name} ({password}@{hostname})", end="", flush=True)
         with RobotWebSession(hostname, username=username, password=password) as robot:
             print(".", end="", flush=True)
-            robot.take_control(force=False, wait_timeout=TIMEOUT)
+            robot.take_control(force=force, wait_timeout=timeout)
             print(".", end="", flush=True)
             if robot.has_control():
                 robot.lock_brakes()

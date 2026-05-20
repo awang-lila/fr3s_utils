@@ -6,7 +6,7 @@ import numpy as np
 from pylibfranka import ControllerMode, JointPositions, Robot
 
 
-HOME_POSITION = [0.0, 0.0, 0.0, -np.pi/2.0, 0.0, 2.51, 0.0]
+HOME_POSITION = [0.0, 0.0, 0.0, -np.pi, 0.0, 2.51, 0.0]
 TIME_TO_HOME = 5.0
 
 def main():
@@ -32,6 +32,7 @@ def main():
             upper_force_thresholds,
         )
 
+
         # First move the robot to a suitable joint configuration
         print("WARNING: This example will move the robot!")
         print("Please make sure to have the user stop button at hand!")
@@ -44,10 +45,14 @@ def main():
         time_elapsed = 0.0
         motion_finished = False
 
+        robot_states = []
+        joint_commands = []
+
         # External control loop
         while not motion_finished:
             # Read robot state and duration
             robot_state, duration = active_control.readOnce()
+            robot_states.append(robot_state)
 
             # Update time
             time_elapsed += duration.to_sec()
@@ -58,17 +63,26 @@ def main():
 
             traj_frac = time_elapsed / TIME_TO_HOME
             new_positions = (1.0 - traj_frac) * np.asarray(initial_position) + (traj_frac) * np.asarray(HOME_POSITION)
+
             # Set joint positions
-            joint_positions = JointPositions(new_positions)
+            joint_command = JointPositions(new_positions)
+
 
             # Set motion_finished flag to True on the last update
             if time_elapsed >= TIME_TO_HOME:
-                joint_positions.motion_finished = True
+                joint_command.motion_finished = True
                 motion_finished = True
                 print("Finished motion, shutting down example")
 
             # Send command to robot
-            active_control.writeOnce(joint_positions)
+            active_control.writeOnce(joint_command)
+
+            joint_commands.append(joint_command)
+
+        joint_commands = np.asarray(joint_commands)
+        joint_meas = np.asarray([state.q for state in robot_states])
+
+
 
     except Exception as e:
         print(f"Error occurred: {e}")
