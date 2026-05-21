@@ -3,8 +3,6 @@
 # Copyright (c) 2025 Franka Robotics GmbH
 # Use of this source code is governed by the Apache-2.0 license, see LICENSE
 
-import argparse
-import time
 import rich_click as click
 
 import numpy as np
@@ -12,6 +10,13 @@ import numpy as np
 from pylibfranka import CartesianPose, ControllerMode, RealtimeConfig, Robot
 
 
+def _traj_frac_at_step(i: int, n_steps: int, n_smooth: int) -> float:
+    """Interpolation fraction at discrete step index ``i`` (0 .. n_steps-1)."""
+    traj_frac = (i + 1) / n_steps
+    if i < n_smooth:
+        phase = (i + 1) / n_smooth
+        traj_frac = np.sin(phase * np.pi / 2) * traj_frac
+    return traj_frac
 
 
 @click.group()
@@ -23,7 +28,11 @@ def cli():
 @click.option("--dx", default=-0.2)
 @click.option("--dy", default=-0.2)
 @click.option("--dz", default=-0.2)
-@click.option("--time", default=5.0)
+@click.option(
+    "--time",
+    default=5.0,
+    help="Duration (s) for one movement (out or back); total trajectory lasts twice this.",
+)
 @click.option("--dt", default=1e-3)
 @click.option("--n_smooth", default=500)
 def main(ip: str, dx: float, dy: float, dz: float, time: float, dt: float, n_smooth: int):
@@ -55,20 +64,18 @@ def main(ip: str, dx: float, dy: float, dz: float, time: float, dt: float, n_smo
         robot_state, duration = active_control.readOnce()
         initial_cartesian_pose = robot_state.O_T_EE
 
-        n_steps = int(time / dt)
+        n_half = max(1, int(time / dt))
 
-        for i in range(n_steps):
+        for phase_idx in range(2 * n_half):
             # Read robot state and duration
             robot_state, duration = active_control.readOnce()
 
-            traj_frac = (i + 1) / n_steps
-
-            # Smooth traj_frac for the first n_smooth steps
-            if i < n_smooth:
-                # Scale i to [0, 1] over the smoothing window
-                phase = (i + 1) / n_smooth
-                # Quarter-sine taper: 0 at start, 1 at the end of the window
-                traj_frac = np.sin(phase * np.pi / 2) * traj_frac
+            if phase_idx < n_half:
+                i = phase_idx
+                traj_frac = _traj_frac_at_step(i, n_half, n_smooth)
+            else:
+                i = phase_idx - n_half
+                traj_frac = _traj_frac_at_step(n_half - 1 - i, n_half, n_smooth)
 
             # Update joint positions
             new_cartesian_pose = initial_cartesian_pose.copy()
