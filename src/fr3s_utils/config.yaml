@@ -1,0 +1,14 @@
+# Robot web credentials and home joint pose. Other CLI defaults remain in cli.py / move.py.
+
+robots:
+  left:
+    username: dex-franka
+    password: franka123
+    hostname: left-box
+  right:
+    username: dex-franka
+    password: franka123
+    hostname: right-box
+
+home_joint_positions_rad:
+  [0.0, 0.0, 0.0, -1.5707963267948966, 0.0, 1.45, 0.0]

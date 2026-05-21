@@ -1,14 +1,12 @@
-
 import time
+
 import rich_click as click
 
-from franky.robot_web_session import  RobotWebSession
+from franky.robot_web_session import RobotWebSession
 
+from fr3s_utils.config_loader import load_config
 
-robot_configs = {
-    "left": {"username": "dex-franka", "password": "franka123", "hostname": "left-box"},
-    "right": {"username": "dex-franka", "password": "franka123", "hostname": "right-box"}
-}
+robot_configs = load_config().get("robots", {})
 TIMEOUT = 10
 SLEEP_TIME = 5
 
@@ -18,7 +16,7 @@ def cli():
 
 @cli.command()
 @click.option("--force", is_flag=True, default=True)
-@click.option("--timeout", default=TIMEOUT)
+@click.option("--timeout", type=int, default=TIMEOUT)
 def unlock(force: bool, timeout: int):
     for robot_name, robot_config in robot_configs.items():
         hostname, username, password = robot_config["hostname"], robot_config["username"], robot_config["password"]
@@ -39,7 +37,7 @@ def unlock(force: bool, timeout: int):
 
 @cli.command()
 @click.option("--force", is_flag=True, default=True)
-@click.option("--timeout", default=TIMEOUT)
+@click.option("--timeout", type=int, default=TIMEOUT)
 def lock(force: bool, timeout: int):
     for robot_name, robot_config in robot_configs.items():
         hostname, username, password = robot_config["hostname"], robot_config["username"], robot_config["password"]

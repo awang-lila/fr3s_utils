@@ -8,6 +8,7 @@ dependencies = [
     "franky-control>=1.1.3",
     "pylibfranka>=0.21.2",
     "rich-click>=1.9.7",
+    "pyyaml>=6.0",
 ]
 
 
