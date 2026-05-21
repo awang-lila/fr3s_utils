@@ -6,8 +6,9 @@ import numpy as np
 from pylibfranka import ControllerMode, JointPositions, Robot
 
 
-HOME_POSITION = [0.0, 0.0, 0.0, -np.pi, 0.0, 2.51, 0.0]
+HOME_POSITION = np.array([0.0, 0.0, 0.0, -np.pi, 0.0, 2.51, 0.0])
 TIME_TO_HOME = 5.0
+CYCLE_TIME = 1e-3
 
 def main():
     # Parse command line arguments
@@ -41,9 +42,14 @@ def main():
         # Start joint position control with external control loop
         active_control = robot.start_joint_position_control(ControllerMode.CartesianImpedance)
 
-        initial_position = [0.0] * 7
+        initial_position = np.array([0.0] * 7)
+        new_positions = initial_position
         time_elapsed = 0.0
         motion_finished = False
+
+        step = (HOME_POSITION - initial_position) * (CYCLE_TIME/TIME_TO_HOME)
+
+        print(step)
 
         robot_states = []
         joint_commands = []
@@ -59,10 +65,10 @@ def main():
 
             # On first iteration, capture initial position
             if time_elapsed <= duration.to_sec():
+                import pdb; pdb.set_trace()
                 initial_position = robot_state.q_d if hasattr(robot_state, "q_d") else robot_state.q
 
             traj_frac = time_elapsed / TIME_TO_HOME
-            new_positions = (1.0 - traj_frac) * np.asarray(initial_position) + (traj_frac) * np.asarray(HOME_POSITION)
 
             # Set joint positions
             joint_command = JointPositions(new_positions)
@@ -78,6 +84,9 @@ def main():
             active_control.writeOnce(joint_command)
 
             joint_commands.append(joint_command)
+            
+
+            new_positions = new_positions + step
 
         joint_commands = np.asarray(joint_commands)
         joint_meas = np.asarray([state.q for state in robot_states])
