@@ -24,14 +24,20 @@ def _ee_translation_vec(robot: Robot) -> np.ndarray:
     return np.asarray(robot.current_pose.end_effector_pose.translation, dtype=float).reshape(3)
 
 
-def _print_movement_check(label: str, commanded: np.ndarray, estimated_delta: np.ndarray) -> None:
-    err = estimated_delta - commanded
+def _rotation_base_from_ee(robot: Robot) -> np.ndarray:
+    """Rotation R such that displacement in EE frame Δp_E moves the origin in base as R @ Δp_E."""
+    m = robot.current_pose.end_effector_pose.matrix
+    return np.asarray(m[:3, :3], dtype=float)
+
+
+def _print_movement_check(label: str, commanded_base: np.ndarray, estimated_delta: np.ndarray) -> None:
+    err = estimated_delta - commanded_base
     print(
         f"{label}\n"
-        f"  Commanded Δxyz (m):     {np.array2string(commanded, precision=6)}\n"
-        f"  Estimated Δxyz (m):    {np.array2string(estimated_delta, precision=6)}\n"
-        f"  Error (est - cmd) (m): {np.array2string(err, precision=6)}\n"
-        f"  ‖Error‖₂ (m):         {float(np.linalg.norm(err)):.6f}"
+        f"  Commanded Δxyz (m, base): {np.array2string(commanded_base, precision=6)}\n"
+        f"  Estimated Δxyz (m):       {np.array2string(estimated_delta, precision=6)}\n"
+        f"  Error (est - cmd) (m):    {np.array2string(err, precision=6)}\n"
+        f"  ‖Error‖₂ (m):            {float(np.linalg.norm(err)):.6f}"
     )
 
 @click.group()
@@ -58,8 +64,9 @@ def home(ip: str, relative_dynamics_factor: float):
     "--check-movement/--no-check-movement",
     default=True,
     help=(
-        "After each relative segment, compare commanded translation to the change in "
-        "reported EE position (current_pose); print both vectors and error (est - cmd)."
+        "After each relative segment, compare the motion to the change in reported EE position "
+        "in the base frame. The commanded translation is rotated from EE-relative axes "
+        "(ReferenceType.Relative) into base using the EE pose at motion start."
     ),
 )
 def out_and_back(
@@ -78,25 +85,28 @@ def out_and_back(
         motion_vec = np.array([dx, dy, dz])
 
         t0 = _ee_translation_vec(robot) if check_movement else None
+        R_before_out = _rotation_base_from_ee(robot) if check_movement else None
 
-        # Move the robot out.
+        # Move the robot out (translation is along EE-fixed axes).
         motion1 = CartesianMotion(Affine(motion_vec), ReferenceType.Relative)
         robot.move(motion1)
 
         if check_movement:
             t1 = _ee_translation_vec(robot)
-            _print_movement_check("Out segment:", motion_vec, t1 - t0)
+            cmd_base_out = R_before_out @ motion_vec.reshape(3)
+            _print_movement_check("Out segment:", cmd_base_out, t1 - t0)
 
         time.sleep(_BETWEEN_OUT_AND_BACK_SLEEP_S)
 
         # Move the robot back.
+        R_before_back = _rotation_base_from_ee(robot) if check_movement else None
         motion2 = CartesianMotion(Affine(-1.0 * motion_vec), ReferenceType.Relative)
         robot.move(motion2)
 
         if check_movement:
             t2 = _ee_translation_vec(robot)
-            cmd_back = -motion_vec
-            _print_movement_check("Back segment:", cmd_back, t2 - t1)
+            cmd_base_back = R_before_back @ (-motion_vec).reshape(3)
+            _print_movement_check("Back segment:", cmd_base_back, t2 - t1)
 
     except Exception as e:
         print(f"Error occurred: {e}")
