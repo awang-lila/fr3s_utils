@@ -1,4 +1,12 @@
-# Robot web credentials and home joint pose. Other CLI defaults remain in cli.py / move.py.
+# Robot web credentials, poses, and shared timing tuned for your setup.
+
+timing:
+  # RobotWebSession take_control(wait_timeout=...) defaults for unlock / lock .
+  unlock_timeout_seconds: 10
+  # After brake unlock on `robot unlock`; pause before enable_fci.
+  unlock_pause_before_enable_fci_seconds: 5
+  # Delay between outbound and return Cartesian segment in move out-and-back.
+  between_out_and_back_sleep_seconds: 0.25
 
 robots:
   left:

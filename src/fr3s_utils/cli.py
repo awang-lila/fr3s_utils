@@ -6,9 +6,11 @@ from franky.robot_web_session import RobotWebSession
 
 from fr3s_utils.config_loader import load_config
 
-robot_configs = load_config().get("robots", {})
-TIMEOUT = 10
-SLEEP_TIME = 5
+_cfg = load_config()
+_timing = _cfg.get("timing", {})
+robot_configs = _cfg.get("robots", {})
+TIMEOUT = int(_timing.get("unlock_timeout_seconds", 10))
+SLEEP_TIME = float(_timing.get("unlock_pause_before_enable_fci_seconds", 5))
 
 @click.group()
 def cli():

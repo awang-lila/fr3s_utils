@@ -1,3 +1,5 @@
+import time
+
 import rich_click as click
 
 import numpy as np
@@ -7,12 +9,14 @@ from franky import CartesianMotion, Affine, ReferenceType, Robot, JointMotion
 from fr3s_utils.config_loader import load_config
 
 _CFG = load_config()
+_TIMING = _CFG.get("timing", {})
 _HOME_Q = list(
     _CFG.get(
         "home_joint_positions_rad",
         [0.0, 0.0, 0.0, -np.pi / 2.0, 0.0, 1.45, 0.0],
     )
 )
+_BETWEEN_OUT_AND_BACK_SLEEP_S = float(_TIMING.get("between_out_and_back_sleep_seconds", 0.25))
 
 
 def _ee_translation_vec(robot: Robot) -> np.ndarray:
@@ -30,7 +34,6 @@ def _print_movement_check(label: str, commanded: np.ndarray, estimated_delta: np
         f"  ‖Error‖₂ (m):         {float(np.linalg.norm(err)):.6f}"
     )
 
-
 @click.group()
 def cli():
    pass
@@ -47,9 +50,9 @@ def home(ip: str, relative_dynamics_factor: float):
 
 @cli.command()
 @click.option("--ip", type=str, default="left-box")
-@click.option("--dx", type=float, default=-0.15)
-@click.option("--dy", type=float, default=-0.15)
-@click.option("--dz", type=float, default=-0.15)
+@click.option("--dx", type=float, default=-0.1)
+@click.option("--dy", type=float, default=0.0)
+@click.option("--dz", type=float, default=0.0)
 @click.option("--relative_dynamics_factor", type=float, default=0.05)
 @click.option(
     "--check-movement/--no-check-movement",
@@ -83,6 +86,8 @@ def out_and_back(
         if check_movement:
             t1 = _ee_translation_vec(robot)
             _print_movement_check("Out segment:", motion_vec, t1 - t0)
+
+        time.sleep(_BETWEEN_OUT_AND_BACK_SLEEP_S)
 
         # Move the robot back.
         motion2 = CartesianMotion(Affine(-1.0 * motion_vec), ReferenceType.Relative)
