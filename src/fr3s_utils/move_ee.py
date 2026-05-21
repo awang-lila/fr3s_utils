@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-
-# Copyright (c) 2025 Franka Robotics GmbH
-# Use of this source code is governed by the Apache-2.0 license, see LICENSE
-
 import rich_click as click
 
 import numpy as np
