@@ -31,13 +31,13 @@ def _rotation_base_from_ee(robot: Robot) -> np.ndarray:
 
 
 def _print_movement_check(label: str, commanded_base: np.ndarray, estimated_delta: np.ndarray) -> None:
-    err = estimated_delta - commanded_base
+    err = 1e2  * (estimated_delta - commanded_base)
     print(
         f"{label}\n"
         f"  Commanded Δxyz (m, base): {np.array2string(commanded_base, precision=6)}\n"
         f"  Estimated Δxyz (m):       {np.array2string(estimated_delta, precision=6)}\n"
-        f"  Error (est - cmd) (m):    {np.array2string(err, precision=6)}\n"
-        f"  ‖Error‖₂ (m):            {float(np.linalg.norm(err)):.6f}"
+        f"  Error (est - cmd) (cm):    {np.array2string(err, precision=6)}\n"
+        f"  ‖Error‖₂ (cm):            {float(np.linalg.norm(err)):.6f}"
     )
 
 @click.group()
@@ -56,10 +56,10 @@ def home(ip: str, relative_dynamics_factor: float):
 
 @cli.command()
 @click.option("--ip", type=str, default="left-box")
-@click.option("--dx", type=float, default=-0.1)
+@click.option("--dx", type=float, default=-0.2)
 @click.option("--dy", type=float, default=0.0)
 @click.option("--dz", type=float, default=0.0)
-@click.option("--relative_dynamics_factor", type=float, default=0.05)
+@click.option("--relative_dynamics_factor", type=float, default=0.25)
 @click.option(
     "--check-movement/--no-check-movement",
     default=True,
