@@ -31,11 +31,25 @@ def cli():
 @click.option(
     "--time",
     default=5.0,
-    help="Duration (s) for one movement (out or back); total trajectory lasts twice this.",
+    help="Duration (s) for one movement (out or back); motion lasts twice this plus --pause.",
+)
+@click.option(
+    "--pause",
+    default=0.5,
+    help="Seconds to hold at full displacement between outbound and return (control-rate dwell).",
 )
 @click.option("--dt", default=1e-3)
 @click.option("--n_smooth", default=500)
-def main(ip: str, dx: float, dy: float, dz: float, time: float, dt: float, n_smooth: int):
+def main(
+    ip: str,
+    dx: float,
+    dy: float,
+    dz: float,
+    time: float,
+    pause: float,
+    dt: float,
+    n_smooth: int,
+):
     # Connect to robot
     robot = Robot(ip, RealtimeConfig.kIgnore)
 
@@ -65,28 +79,25 @@ def main(ip: str, dx: float, dy: float, dz: float, time: float, dt: float, n_smo
         initial_cartesian_pose = robot_state.O_T_EE
 
         n_half = max(1, int(time / dt))
+        pause_steps = max(0, int(pause / dt))
+        hold_frac = _traj_frac_at_step(n_half - 1, n_half, n_smooth)
 
-        for phase_idx in range(2 * n_half):
-            # Read robot state and duration
-            robot_state, duration = active_control.readOnce()
-
-            if phase_idx < n_half:
-                i = phase_idx
-                traj_frac = _traj_frac_at_step(i, n_half, n_smooth)
-            else:
-                i = phase_idx - n_half
-                traj_frac = _traj_frac_at_step(n_half - 1 - i, n_half, n_smooth)
-
-            # Update joint positions
+        def step_pose(traj_frac: float) -> None:
+            active_control.readOnce()
             new_cartesian_pose = initial_cartesian_pose.copy()
             new_cartesian_pose[12] += dx * traj_frac
             new_cartesian_pose[13] += dy * traj_frac
             new_cartesian_pose[14] += dz * traj_frac
+            active_control.writeOnce(CartesianPose(new_cartesian_pose))
 
-            # Set joint positions
-            cartesian_pose = CartesianPose(new_cartesian_pose)
+        for i in range(n_half):
+            step_pose(_traj_frac_at_step(i, n_half, n_smooth))
 
-            active_control.writeOnce(cartesian_pose)
+        for _ in range(pause_steps):
+            step_pose(hold_frac)
+
+        for i in range(n_half):
+            step_pose(_traj_frac_at_step(n_half - 1 - i, n_half, n_smooth))
 
     except Exception as e:
         print(f"Error occurred: {e}")
