@@ -74,31 +74,6 @@ def _interactive_choose_arms(
     return [_match_arm_key(robot_configs, picked)]
 
 
-def resolve_for_robot_commands(
-    robot_configs: dict[str, dict[str, Any]],
-    arm_opt: str | None,
-    *,
-    interactive_question: str,
-) -> list[tuple[str, dict[str, Any]]]:
-    """(arm_name, yaml_entry) tuples for RobotWebSession / lock / unlock."""
-    require_configured_robots(robot_configs)
-
-    if arm_opt is None:
-        if not sys.stdin.isatty():
-            raise click.UsageError(
-                "No interactive terminal; specify --arm ("
-                + _format_keys_help(robot_configs)
-                + ")."
-            )
-        sel = _interactive_choose_arms(
-            robot_configs, question=interactive_question
-        )
-    else:
-        sel = _parse_arm_flag(robot_configs, arm_opt)
-
-    return [(k, robot_configs[k]) for k in sel]
-
-
 def resolve_for_move_commands(
     robot_configs: dict[str, dict[str, Any]],
     ip_opt: str | None,
